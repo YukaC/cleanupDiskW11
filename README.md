@@ -55,37 +55,38 @@
 ## 📋 Requisitos
 
 - **Sistema Operativo**: Windows 10 / Windows 11
-- **Python**: 3.8 o superior
-- **Permisos**: Administrador (recomendado para acceso completo)
+- **Permisos**: Administrador (necesario para limpieza profunda y puntos de restauración)
+- **Python 3.8+**: Solo si ejecutas desde código fuente
 
 ---
 
-## 🚀 Instalación
+## 🚀 Descarga e Instalación
 
-### Opción 1: Desde Código Fuente
+### Opción 1: Ejecutable Portable (Recomendado) ⭐
 
+La forma más sencilla. No requiere instalación de Python.
+
+1. Ve a la sección de **[Releases](https://github.com/YukaC/cleanupDiskW11/releases/latest)**.
+2. Descarga el archivo `CleanupToolWin11.exe`.
+3. Ejecuta el archivo (Click derecho -> Ejecutar como Administrador recomendado).
+
+### Opción 2: Desde Código Fuente (Desarrolladores)
+
+1. **Clonar el repositorio**:
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/cleanUpDisk.git
+git clone https://github.com/YukaC/cleanupDiskW11.git
 cd cleanUpDisk
+```
 
-# Instalar dependencias
+2. **Instalar dependencias**:
+```bash
 pip install -r requirements.txt
+```
 
-# Ejecutar
+3. **Ejecutar**:
+```bash
 python main.py
 ```
-
-### Opción 2: Ejecutable Portable
-
-Si prefieres no instalar Python, puedes compilar el ejecutable:
-
-```bash
-pip install pyinstaller
-pyinstaller --onefile --windowed --icon=app_icon.ico --name=CleanupToolWin11 main.py
-```
-
-El ejecutable estará en `dist/CleanupToolWin11.exe`
 
 ---
 
