@@ -1,0 +1,41 @@
+# Maintainer: YukaC <https://github.com/YukaC>
+# Stub PKGBUILD for CleanupOs (AUR package name: cleanup-os)
+#
+# Fill source URL / checksums when publishing a tagged release.
+# Do not commit built packages (.pkg.tar.zst) to the git tree.
+#
+# Safety: runtime code must keep the hardcoded denylist
+# (core/safety/denylist.py). Never patch the package to load forbidden
+# paths from user config.
+
+pkgname=cleanup-os
+pkgver=2.0.0dev
+pkgrel=1
+pkgdesc='System cleanup and optimization — Windows · Linux · macOS'
+arch=('any')
+url='https://github.com/YukaC/cleanupDiskW11'
+license=('MIT')
+depends=('python' 'python-psutil' 'python-pillow' 'tk')
+# customtkinter: package from PyPI / AUR when available, or vendor via pip
+# in package() until an Arch package exists.
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+# source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v${pkgver}.tar.gz")
+# sha256sums=('SKIP')
+
+prepare() {
+  # cd "$srcdir/..."
+  true
+}
+
+build() {
+  # cd "$srcdir/..."
+  # python -m build --wheel --no-isolation
+  true
+}
+
+package() {
+  # cd "$srcdir/..."
+  # python -m installer --destdir="$pkgdir" dist/*.whl
+  # install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  true
+}

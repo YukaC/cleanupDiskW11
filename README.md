@@ -1,220 +1,159 @@
-# Windows 11 Cleanup Tool 🧹
+# CleanupOs
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8+-green.svg)
+![Version](https://img.shields.io/badge/version-2.0.0--dev-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
-**Herramienta profesional de limpieza para Windows con interfaz gráfica moderna, soporte multilingüe y escaneo exhaustivo.**
+**System cleanup and optimization — Windows · Linux · macOS**
 
-[Características](#-características) • [Instalación](#-instalación) • [Uso](#-uso) • [Capturas](#-capturas) • [Contribuir](#-contribuciones)
+Limpieza de sistema con arquitectura *safety-first*: denylist inmutable,
+clasificación de rutas, cuarentena y auditoría. Nunca daña el núcleo vital del SO.
+
+[Compatibilidad](#compatibilidad) • [Seguridad](#niveles-de-seguridad) • [Tareas](#tareas-por-sistema) • [Instalación](#instalación-desde-código-fuente) • [Arquitectura](docs/ARCHITECTURE.md)
 
 </div>
 
 ---
 
-## ✨ Características
+## Qué es CleanupOs
 
-### 🌐 Soporte Multilingüe
-- **Español** e **Inglés** disponibles
-- Cambio de idioma instantáneo sin reiniciar
-- Toda la interfaz se traduce dinámicamente
+CleanupOs es la evolución multi-OS de la herramienta de limpieza para Windows.
+El objetivo: liberar espacio de forma predecible en **Windows**, **Linux** y
+**macOS**, sin tocar rutas críticas del sistema.
 
-### 🎨 Interfaz Moderna
-- **Tema Oscuro/Claro**: Cambia entre modos con un click
-- **Dashboard en Tiempo Real**: Visualiza el uso de disco actual
-- **Barras de Progreso Animadas**: Seguimiento visual de operaciones
-- **Diseño Responsivo**: Se adapta a diferentes tamaños de ventana
+- **Denylist hardcoded** — rutas vitales siempre `FORBIDDEN` (sin config de usuario).
+- **Fail-closed** — SO desconocido o detección incierta → solo alcance SAFE.
+- **Cuarentena + auditoría** antes del borrado permanente.
+- **Snapshots / restore** en tareas REVIEW+ cuando la plataforma lo permite.
 
-### 🧹 Limpieza Estándar
-| Tarea | Descripción |
-|-------|-------------|
-| 🗑️ Archivos Temporales | Limpieza de temp de usuario y sistema |
-| 📦 Caché de Windows Update | Elimina descargas antiguas de actualizaciones |
-| ♻️ Papelera de Reciclaje | Vacía la papelera completamente |
-| 🌐 Caché de Navegadores | Chrome, Edge, Firefox |
-| 📁 Instaladores Antiguos | Elimina .msi/.exe de más de 30 días |
-| 📋 Logs del Sistema | Limpia archivos de registro antiguos |
-| 🖼️ Caché de Miniaturas | Elimina thumbnails de Windows |
-| 💾 Archivos de Volcado | Limpia archivos .dmp |
-
-### ⚡ Escaneo Exhaustivo
-| Tarea | Descripción |
-|-------|-------------|
-| 📄 Archivos Duplicados | Encuentra duplicados usando hash MD5 |
-| 📦 Archivos Grandes Sin Usar | Archivos >100MB sin usar en 6 meses |
-| 🎮 Caché de Terceros | Steam, Discord, npm, pip, VS Code, Docker |
-| 🪟 Windows.old | Instalaciones antiguas de Windows |
-| ⚠️ Reportes de Errores | Archivos .wer y dumps de Windows |
-| 🔧 Drivers Antiguos | Backups de drivers sin usar |
+Documentación de seguridad: [docs/DENYLIST.md](docs/DENYLIST.md) ·
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) ·
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
-## 📋 Requisitos
+## Compatibilidad
 
-- **Sistema Operativo**: Windows 10 / Windows 11
-- **Permisos**: Administrador (necesario para limpieza profunda y puntos de restauración)
-- **Python 3.8+**: Solo si ejecutas desde código fuente
+| Plataforma | Versiones | Arquitecturas | Notas |
+|------------|-----------|---------------|--------|
+| **Windows** | 10 **1809+**, **11** | x64 (ARM64 best-effort) | UAC por tarea; System Restore en REVIEW+ |
+| **Ubuntu / Debian** | LTS / stable actuales | x86_64, aarch64 | Caché de paquetes vía `apt` (nunca `rm` en estado apt) |
+| **Fedora / RHEL** | Fedora actual; RHEL/clones soportados | x86_64, aarch64 | Vía `dnf` / `yum` |
+| **Arch / Manjaro** | Rolling / ramas estables | x86_64 | `pacman` / `paccache` |
+| **openSUSE** | Leap / Tumbleweed | x86_64, aarch64 | Vía `zypper` |
+| **macOS** | **12 Monterey+** | Intel y Apple Silicon | SIP activo; Full Disk Access guiado (TCC) |
+
+Matriz completa: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ---
 
-## 🚀 Descarga e Instalación
+## Niveles de seguridad
 
-### Opción 1: Ejecutable Portable (Recomendado) ⭐
+| Nivel | Significado | Comportamiento |
+|-------|-------------|----------------|
+| **SAFE** | Temps, cachés de usuario, papelera, patrones conocidos | Limpieza rutinaria; sin snapshot obligatorio |
+| **REVIEW** | Cachés de actualización, dumps, logs, Windows.old, package caches | Confirmación; snapshot si la plataforma lo soporta |
+| **ADVANCED** | Marcadores de experto | Solo con conocimiento explícito; mismas reglas de snapshot |
+| **FORBIDDEN** | Denylist o ruta de sistema desconocida | **Nunca se elimina** — ni en modo experto ni con admin |
 
-La forma más sencilla. No requiere instalación de Python.
+> **Regla de oro:** el núcleo vital del SO (boot, binarios del sistema, estado
+> de gestores de paquetes, volúmenes SIP, etc.) está en denylist y es
+> intocable. Ver [docs/DENYLIST.md](docs/DENYLIST.md).
 
-1. Ve a la sección de **[Releases](https://github.com/YukaC/cleanupDiskW11/releases/latest)**.
-2. Descarga el archivo `CleanupToolWin11.exe`.
-3. Ejecuta el archivo (Click derecho -> Ejecutar como Administrador recomendado).
+---
 
-### Opción 2: Desde Código Fuente (Desarrolladores)
+## Tareas por sistema
 
-1. **Clonar el repositorio**:
+Registro por defecto (`core.task_registry`). La UI/CLI filtra por plataforma.
+
+| Tarea | Nivel | Windows | Linux | macOS |
+|-------|-------|:-------:|:-----:|:-----:|
+| Archivos temporales (`temp_files`) | SAFE | ✓ | ✓ | ✓ |
+| Caché de usuario (`user_cache`) | SAFE | ✓ | ✓ | ✓ |
+| Papelera / Trash (`trash`) | SAFE | ✓ | ✓ | ✓ |
+| Caché de navegadores (`browser_cache`) | SAFE | ✓ | ✓ | ✓ |
+| Caché de miniaturas (`thumbnail_cache`) | SAFE | ✓ | ✓ | ✓ |
+| Windows.old (`windows_old`) | REVIEW | ✓ | — | — |
+| Caché Windows Update (`windows_update`) | REVIEW | ✓ | — | — |
+| Caché de paquetes (`package_cache`) | REVIEW | — | ✓ | ✓ |
+| Dumps (`dump_files`) | REVIEW | ✓ | ✓ | ✓ |
+| Logs del sistema (`system_logs`) | REVIEW | ✓ | ✓ | ✓ |
+
+Las tareas legacy del GUI Windows (duplicados, drivers antiguos, etc.) se
+irán migrando al registro multi-OS en fases posteriores.
+
+---
+
+## Instalación desde código fuente
+
+**Requisitos:** Python **3.10+**, permisos elevados solo cuando la tarea lo pida.
+
 ```bash
 git clone https://github.com/YukaC/cleanupDiskW11.git
 cd cleanUpDisk
-```
 
-2. **Instalar dependencias**:
-```bash
-pip install -r requirements.txt
-```
+python -m venv .venv
+# Linux/macOS:
+source .venv/bin/activate
+# Windows:
+# .venv\Scripts\activate
 
-3. **Ejecutar**:
-```bash
+pip install -e .
+# o: pip install -r requirements.txt
+
 python main.py
 ```
 
----
+### Dependencias de desarrollo (opcionales)
 
-## 📖 Uso
-
-### Inicio Rápido
-
-1. **Ejecuta la aplicación** (como Administrador para acceso completo)
-2. **Selecciona el idioma** en la barra lateral (Español/English)
-3. **Elige las tareas** que deseas ejecutar
-4. **Click en Analizar** para ver el espacio a liberar
-5. **Click en Limpiar** para ejecutar la limpieza
-
-### Crear Punto de Restauración
-
-> 🔒 **Recomendado**: Antes de limpiar archivos del sistema, crea un punto de restauración.
-
-1. Click en "💾 Punto Restauración"
-2. Espera la confirmación (puede tomar unos minutos)
-3. Ahora puedes limpiar con seguridad
-
----
-
-## ⚠️ Advertencias
-
-> **IMPORTANTE**: Esta herramienta elimina archivos de forma **permanente**. No se pueden recuperar.
-
-### Niveles de Seguridad
-
-| Nivel | Tareas | Recomendación |
-|-------|--------|---------------|
-| ✅ Seguro | Temp, Caché, Papelera, Logs | Limpiar sin preocupación |
-| ⚠️ Cuidado | Duplicados, Archivos grandes, Windows.old | Revisar antes de eliminar |
-| ❌ Peligroso | Drivers antiguos | Solo si sabes lo que haces |
-
----
-
-## 🏗️ Estructura del Proyecto
-
-```
-cleanUpDisk/
-├── main.py              # Interfaz gráfica principal (CustomTkinter)
-├── cleanup_engine.py    # Motor de limpieza estándar
-├── deep_scanner.py      # Escáner exhaustivo
-├── disk_analyzer.py     # Análisis de disco
-├── system_utils.py      # Utilidades del sistema (admin, restore points)
-├── app_icon.ico         # Icono de la aplicación
-├── requirements.txt     # Dependencias Python
-├── LICENSE              # Licencia MIT
-└── README.md            # Este archivo
-```
-
----
-
-## 🔐 Seguridad y Privacidad
-
-- ✅ **100% Local**: No envía datos a internet
-- ✅ **Open Source**: Código completamente auditable
-- ✅ **Sin Telemetría**: No rastrea tu actividad
-- ✅ **Logging Detallado**: Registro de todas las operaciones
-
----
-
-## 🐛 Solución de Problemas
-
-<details>
-<summary><strong>"Permission Denied" al limpiar</strong></summary>
-
-**Solución**: Ejecuta como Administrador
 ```bash
-# Click derecho en main.py → "Ejecutar como administrador"
+pip install -e ".[dev]"   # pytest
+pip install ruff          # lint ligero (también en CI)
+pytest tests/test_safety tests/test_core tests/test_linux tests/test_macos -q
 ```
-</details>
 
-<details>
-<summary><strong>Algunos archivos no se eliminan</strong></summary>
+No hay dependencias runtime nuevas más allá de las ya declaradas
+(`customtkinter`, `psutil`, `Pillow`).
 
-**Causa**: Archivos en uso por otros programas.
+### Empaquetado (esqueleto)
 
-**Solución**:
-1. Cierra navegadores y aplicaciones
-2. Reinicia Windows
-3. Ejecuta la limpieza inmediatamente después
-</details>
+Notas y stubs (sin binarios en el repo):
 
-<details>
-<summary><strong>El escaneo exhaustivo es lento</strong></summary>
-
-**Esto es normal**. El escaneo profundo analiza todo el sistema y puede tomar 10-15 minutos en discos grandes.
-</details>
+- [packaging/windows](packaging/windows) — Inno Setup / NSIS
+- [packaging/linux](packaging/linux) — PKGBUILD, deb/rpm/AppImage, Flatpak `io.github.YukaC.CleanupOs`
+- [packaging/macos](packaging/macos) — checklist codesign + notarize
 
 ---
 
-## 🤝 Contribuciones
+## Privacidad
 
-¡Las contribuciones son bienvenidas!
-
-1. Fork el proyecto
-2. Crea tu rama (`git checkout -b feature/NuevaFuncion`)
-3. Commit tus cambios (`git commit -m 'Agregar NuevaFuncion'`)
-4. Push a la rama (`git push origin feature/NuevaFuncion`)
-5. Abre un Pull Request
+- 100% local — sin telemetría ni envío de datos
+- Open source (MIT) — código auditable
+- Registro de operaciones destructivas vía capa de auditoría
 
 ---
 
-## 📝 Changelog
+## Contribuir
 
-### v1.0.0 (2026-01-16)
-- ✨ Interfaz gráfica moderna con CustomTkinter
-- 🌐 Soporte multilingüe (Español/Inglés)
-- 🎨 Tema oscuro y claro
-- 🧹 8 tareas de limpieza estándar
-- ⚡ 6 tareas de escaneo exhaustivo
-- 💾 Creación de puntos de restauración
-- 📊 Barra de progreso detallada
+Lee [CONTRIBUTING.md](CONTRIBUTING.md). Cambios al denylist requieren el mismo
+escrutinio que código de seguridad y deben actualizar `docs/DENYLIST.md` en el
+mismo cambio.
+
+Historial: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-## 📄 Licencia
+## Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
+MIT — ver [LICENSE](LICENSE).
 
 ---
 
 <div align="center">
 
-**Desarrollado con ❤️ para mantener Windows limpio y rápido**
-
-⭐ Si te resulta útil, considera darle una estrella al proyecto ⭐
+**CleanupOs** — limpia sin romper el sistema.
 
 </div>

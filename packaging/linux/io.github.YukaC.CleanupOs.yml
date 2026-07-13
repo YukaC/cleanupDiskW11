@@ -1,0 +1,38 @@
+# Flatpak manifest stub — CleanupOs
+# App ID: io.github.YukaC.CleanupOs
+#
+# Skeleton only. Fill modules (Python deps, app sources) before building.
+# Prefer Flathub review guidelines when preparing a real submission.
+#
+# Safety: the sandboxed app must still enforce the hardcoded denylist
+# (core/safety/denylist.py). Do not request filesystem permissions that
+# would encourage deleting /usr, /boot, or package-manager state trees.
+
+app-id: io.github.YukaC.CleanupOs
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: cleanup-os
+
+finish-args:
+  # GUI
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # User cache / trash cleanup (tighten after real path audit)
+  - --filesystem=xdg-cache
+  - --filesystem=xdg-data/Trash
+  - --filesystem=xdg-download:ro
+  # No network required for core cleanup (add only if future features need it)
+  # - --share=network
+
+modules:
+  # Placeholder — replace with a proper python3-modules / pip generator output.
+  - name: cleanup-os
+    buildsystem: simple
+    build-commands:
+      - echo "TODO: install cleanup-os and runtime deps into /app"
+      # - pip3 install --prefix=/app --no-deps .
+    sources:
+      - type: dir
+        path: ../..

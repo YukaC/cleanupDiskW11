@@ -2,11 +2,31 @@ name: ci
 
 on:
   push:
-    branches: [main, feature/**]
+    branches: [main, feature/**, refactor/**]
   pull_request:
     branches: [main]
 
 jobs:
+  lint:
+    name: lint-ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run ruff check
+        run: ruff check core platforms tests
+        continue-on-error: true
+
   safety:
     name: safety-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -29,5 +49,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run safety tests
-        run: pytest tests/test_safety tests/test_core -q
+      - name: Run safety, core, and platform mock tests
+        run: pytest tests/test_safety tests/test_core tests/test_linux tests/test_macos -q
