@@ -122,11 +122,17 @@ def test_systemUtilsShimReExports() -> None:
     assert callable(system_utils.isAdmin)
     assert callable(system_utils.createRestorePoint)
     assert callable(system_utils.getSafeToDeletePaths)
-    # Must not crash on Linux
-    assert system_utils.isAdmin() is False
-    success, message = system_utils.createRestorePoint("x")
-    assert success is False
-    assert "Windows" in message
+    # Shim must be import-safe; isAdmin reflects the host (may be True on Windows CI).
+    assert isinstance(system_utils.isAdmin(), bool)
+    if sys.platform != "win32":
+        assert system_utils.isAdmin() is False
+        success, message = system_utils.createRestorePoint("x")
+        assert success is False
+        assert "Windows" in message
+    else:
+        success, message = system_utils.createRestorePoint("x")
+        assert isinstance(success, bool)
+        assert isinstance(message, str)
 
 
 def test_getTaskPathsFromProvider() -> None:
