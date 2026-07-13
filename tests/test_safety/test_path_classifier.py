@@ -92,11 +92,24 @@ class PathClassifierTests(unittest.TestCase):
             targetFile.write_text("root:x:0:0\n", encoding="utf-8")
 
             linkPath = Path(tempDir) / "safe_looking_link"
-            linkPath.symlink_to(targetFile)
+            try:
+                linkPath.symlink_to(targetFile)
+            except OSError as error:
+                self.skipTest(f"Cannot create symlink on this host: {error}")
+
+            resolvedLink = os.path.realpath(str(linkPath))
+            resolvedTarget = os.path.realpath(str(targetFile))
+            if os.path.normpath(resolvedLink) != os.path.normpath(resolvedTarget):
+                self.skipTest(
+                    "Host does not follow symlinks (common without Windows Developer Mode)"
+                )
 
             scopedDenylist = FakeDenylist(
                 {
-                    PlatformId.LINUX: (str(forbiddenDir),),
+                    PlatformId.LINUX: (
+                        str(forbiddenDir),
+                        os.path.realpath(str(forbiddenDir)),
+                    ),
                 }
             )
             classifier = PathClassifier(denylist=scopedDenylist)
@@ -222,7 +235,15 @@ class PathClassifierTests(unittest.TestCase):
             realFile = Path(tempDir) / "real.txt"
             realFile.write_text("x", encoding="utf-8")
             linkPath = Path(tempDir) / "link.txt"
-            linkPath.symlink_to(realFile)
+            try:
+                linkPath.symlink_to(realFile)
+            except OSError as error:
+                self.skipTest(f"Cannot create symlink on this host: {error}")
+
+            if os.path.normpath(os.path.realpath(str(linkPath))) != os.path.normpath(
+                os.path.realpath(str(realFile))
+            ):
+                self.skipTest("Host does not follow symlinks")
 
             resolved = self.classifier.resolvePath(str(linkPath))
             self.assertEqual(

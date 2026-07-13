@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ntpath
 import os
+import posixpath
 from typing import Optional, Protocol
 
 from core.models import ClassifiedPath, PathSafetyLevel, PlatformId
@@ -86,8 +87,6 @@ class PathClassifier:
         POSIX semantics even when the host is Windows, so Linux/macOS rules can
         be unit-tested cross-platform.
         """
-        import posixpath
-
         if not path:
             return os.path.abspath(os.curdir)
 
@@ -119,8 +118,14 @@ class PathClassifier:
     def classify(self, path: str, platformId: PlatformId) -> ClassifiedPath:
         """Classify a path for the given platform (fail-closed for unknowns)."""
         resolvedPath = self.resolvePath(path)
+        # Host may rewrite paths (e.g. macOS /tmp → /private/tmp). Match rules
+        # against a logical form for the target platform while keeping the real
+        # resolved path in the result for audit trails.
+        matchPath = self._logicalPathForPlatform(resolvedPath, platformId)
 
-        if self.denylist.isForbidden(resolvedPath, platformId):
+        if self.denylist.isForbidden(matchPath, platformId) or self.denylist.isForbidden(
+            resolvedPath, platformId
+        ):
             return self._buildResult(
                 path,
                 resolvedPath,
@@ -129,7 +134,7 @@ class PathClassifier:
                 platformId,
             )
 
-        safeReason = self._matchSafePatterns(resolvedPath, platformId)
+        safeReason = self._matchSafePatterns(matchPath, platformId)
         if safeReason is not None:
             return self._buildResult(
                 path,
@@ -139,7 +144,7 @@ class PathClassifier:
                 platformId,
             )
 
-        reviewReason = self._matchReviewPatterns(resolvedPath, platformId)
+        reviewReason = self._matchReviewPatterns(matchPath, platformId)
         if reviewReason is not None:
             return self._buildResult(
                 path,
@@ -149,7 +154,7 @@ class PathClassifier:
                 platformId,
             )
 
-        advancedReason = self._matchAdvancedPatterns(resolvedPath, platformId)
+        advancedReason = self._matchAdvancedPatterns(matchPath, platformId)
         if advancedReason is not None:
             return self._buildResult(
                 path,
@@ -159,7 +164,9 @@ class PathClassifier:
                 platformId,
             )
 
-        if self._isUnderHome(resolvedPath, platformId):
+        if self._isUnderHome(matchPath, platformId) or self._isUnderHome(
+            resolvedPath, platformId
+        ):
             return self._buildResult(
                 path,
                 resolvedPath,
@@ -175,6 +182,25 @@ class PathClassifier:
             "Unknown system path (fail-closed)",
             platformId,
         )
+
+    def _logicalPathForPlatform(self, resolvedPath: str, platformId: PlatformId) -> str:
+        """Map host-resolved paths back to the platform's conventional layout."""
+        if platformId != PlatformId.LINUX:
+            return resolvedPath
+
+        normalized = resolvedPath.replace("\\", "/")
+        privateMappings = (
+            ("/private/tmp", "/tmp"),
+            ("/private/var/tmp", "/var/tmp"),
+            ("/private/var", "/var"),
+            ("/private/etc", "/etc"),
+        )
+        for privatePrefix, publicPrefix in privateMappings:
+            if normalized == privatePrefix:
+                return publicPrefix
+            if normalized.startswith(privatePrefix + "/"):
+                return publicPrefix + normalized[len(privatePrefix) :]
+        return resolvedPath
 
     def canDelete(self, classified: ClassifiedPath) -> bool:
         """Return False for FORBIDDEN paths; True otherwise."""
@@ -327,6 +353,13 @@ class PathClassifier:
             if comparePath == "/tmp" or comparePath.startswith("/tmp/"):
                 return "Linux temp directory"
             if comparePath == "/var/tmp" or comparePath.startswith("/var/tmp/"):
+                return "Linux temp directory"
+            # macOS hosts resolve /tmp → /private/tmp; accept both forms.
+            if comparePath == "/private/tmp" or comparePath.startswith("/private/tmp/"):
+                return "Linux temp directory"
+            if comparePath == "/private/var/tmp" or comparePath.startswith(
+                "/private/var/tmp/"
+            ):
                 return "Linux temp directory"
             if "/.cache/" in comparePath or comparePath.endswith("/.cache"):
                 return "Linux user cache"
