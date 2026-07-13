@@ -1,4 +1,4 @@
-"""Windows platform provider (stub — future home for system_utils logic)."""
+"""Windows platform provider — real implementation over paths + services."""
 
 from __future__ import annotations
 
@@ -7,55 +7,43 @@ import sys
 
 from core.models import PlatformId, SnapshotResult
 from platforms.base import IPlatformProvider
+from platforms.windows import paths as windowsPaths
+from platforms.windows import services as windowsServices
 
 
 class WindowsProvider(IPlatformProvider):
-    """Windows-specific provider. Real logic will move from system_utils."""
+    """Windows-specific capabilities for CleanupOs."""
 
     def getPlatformId(self) -> PlatformId:
         return PlatformId.WINDOWS
 
     def isAdmin(self) -> bool:
-        # TODO: delegate to system_utils.isAdmin() after move
-        try:
-            import ctypes
-
-            return bool(ctypes.windll.shell32.IsUserAnAdmin())
-        except Exception:
-            return False
+        return windowsServices.isAdmin()
 
     def elevate(self, command: list[str]) -> tuple[bool, str]:
-        # TODO: UAC elevation via ShellExecuteW (see system_utils.requestAdminPrivileges)
-        _ = command
-        return False, "Windows elevation is not implemented yet"
+        return windowsServices.elevate(command)
 
     def getCachePaths(self) -> list[str]:
-        # TODO: move getSafeToDeletePaths / cache enumeration from system_utils + cleanup_engine
-        return []
+        return windowsPaths.getSafeCachePaths()
 
     def emptyTrash(self, dryRun: bool = True) -> dict:
-        # TODO: empty Recycle Bin (SHEmptyRecycleBin / PowerShell Clear-RecycleBin)
-        return {
-            "isSuccess": False,
-            "filesRemoved": 0,
-            "bytesFreed": 0,
-            "dryRun": dryRun,
-            "message": "Windows trash emptying is not implemented yet",
-        }
+        return windowsServices.emptyRecycleBin(dryRun=dryRun)
 
     def createSnapshot(self, description: str = "") -> SnapshotResult:
-        # TODO: wrap system_utils.createRestorePoint after move
-        _ = description
+        snapshotDescription = description or "CleanupOs - Before Cleanup"
+        isSuccess, message = windowsServices.createRestorePoint(snapshotDescription)
+        snapshotId = ""
+        if isSuccess and "ID:" in message:
+            snapshotId = message.split("ID:")[-1].strip().rstrip(")")
         return SnapshotResult(
-            isSuccess=False,
-            snapshotId="",
-            message="Windows snapshot creation is not implemented yet",
+            isSuccess=isSuccess,
+            snapshotId=snapshotId,
+            message=message,
             platformId=PlatformId.WINDOWS,
         )
 
     def getStartupItems(self) -> list[dict]:
-        # TODO: enumerate Run keys / Startup folder
-        return []
+        return windowsServices.getStartupItems()
 
     def detectEnvironment(self) -> dict:
         isWindows = sys.platform == "win32"
@@ -68,5 +56,15 @@ class WindowsProvider(IPlatformProvider):
             "release": release,
             "machine": platform.machine(),
             "isAdmin": self.isAdmin() if isWindows else False,
+            "isWindows11": windowsServices.isWindows11() if isWindows else False,
+            "systemDrive": windowsPaths.getSystemDrive(),
             "isConfident": isWindows,
         }
+
+    def runWinsxsCleanup(self, dryRun: bool = True) -> dict:
+        """Official WinSxS cleanup via DISM — never direct filesystem delete."""
+        return windowsServices.runDismComponentCleanup(dryRun=dryRun)
+
+    def getTaskPaths(self, taskId: str) -> list[str]:
+        """Return candidate roots for a cleanup task id."""
+        return list(windowsPaths.getTaskPathMap().get(taskId, []))

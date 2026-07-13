@@ -125,9 +125,54 @@ def buildDefaultTaskRegistry() -> TaskRegistry:
             safetyLevel=PathSafetyLevel.REVIEW,
             platformIds=ALL_PLATFORMS,
         ),
+        CleanupTaskDefinition(
+            id="recycle_bin",
+            labelKey="task_recycle_bin",
+            safetyLevel=PathSafetyLevel.SAFE,
+            platformIds=WINDOWS_ONLY,
+        ),
+        CleanupTaskDefinition(
+            id="old_installers",
+            labelKey="task_old_installers",
+            safetyLevel=PathSafetyLevel.REVIEW,
+            platformIds=WINDOWS_ONLY,
+        ),
+        CleanupTaskDefinition(
+            id="prefetch",
+            labelKey="task_prefetch",
+            safetyLevel=PathSafetyLevel.REVIEW,
+            platformIds=WINDOWS_ONLY,
+        ),
+        CleanupTaskDefinition(
+            id="error_reports",
+            labelKey="task_error_reports",
+            safetyLevel=PathSafetyLevel.REVIEW,
+            platformIds=WINDOWS_ONLY,
+        ),
+        CleanupTaskDefinition(
+            id="third_party_cache",
+            labelKey="task_third_party_cache",
+            safetyLevel=PathSafetyLevel.REVIEW,
+            platformIds=WINDOWS_ONLY,
+        ),
     ]
 
-    for task in (*safeTasks, *reviewTasks):
+    advancedTasks = [
+        CleanupTaskDefinition(
+            id="old_drivers",
+            labelKey="task_old_drivers",
+            safetyLevel=PathSafetyLevel.ADVANCED,
+            platformIds=WINDOWS_ONLY,
+        ),
+        CleanupTaskDefinition(
+            id="winsxs_cleanup",
+            labelKey="task_winsxs_cleanup",
+            safetyLevel=PathSafetyLevel.ADVANCED,
+            platformIds=WINDOWS_ONLY,
+        ),
+    ]
+
+    for task in (*safeTasks, *reviewTasks, *advancedTasks):
         registry.registerTask(task)
 
     return registry
