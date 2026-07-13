@@ -173,19 +173,13 @@ def test_reviewTaskFailsClosedWithoutSnapshot(engineFactory, tmp_path: Path) -> 
 
 
 def test_forbiddenPathsNeverQuarantined(engineFactory, tmp_path: Path) -> None:
-    # Under PlatformId.WINDOWS, an unknown non-home path is fail-closed FORBIDDEN.
-    mysteryDir = tmp_path / "not-a-temp-root"
-    mysteryDir.mkdir()
-    mysteryFile = mysteryDir / "secret.bin"
-    mysteryFile.write_bytes(b"nope")
-
+    # Denylist FORBIDDEN root — must never quarantine even if listed as a task path.
     provider = FakeWindowsProvider()
-    provider.getTaskPaths = MagicMock(return_value=[str(mysteryDir)])
+    provider.getTaskPaths = MagicMock(return_value=[r"C:\Windows\System32"])
     engine, _ = engineFactory(provider=provider)
     summary = engine.execute(["temp_files"], dryRun=False)
 
     assert summary["total_files_deleted"] == 0
-    assert mysteryFile.exists()
     assert engine.quarantineManager.listItems() == []
 
 

@@ -102,7 +102,12 @@ def test_linuxDetectEnvironmentIncludesDistroKeys() -> None:
 def test_macosDetectEnvironmentExposesSipFailClosed() -> None:
     provider = MacosProvider()
     with patch("platforms.macos.provider.sys.platform", "darwin"):
-        env = provider.detectEnvironment()
+        with patch.object(
+            provider,
+            "_querySipStatus",
+            return_value=("unknown", "csrutil unavailable"),
+        ):
+            env = provider.detectEnvironment()
 
     assert env["platformId"] == PlatformId.MACOS.value
     assert "sipStatus" in env

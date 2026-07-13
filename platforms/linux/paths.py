@@ -27,7 +27,10 @@ DEFAULT_JOURNAL_VACUUM_AGE = "7d"
 
 
 def getHomeDirectory() -> str:
-    """Return the expanded user home directory."""
+    """Return the expanded user home directory (honors ``HOME`` for tests)."""
+    homeEnv = os.environ.get("HOME", "").strip()
+    if homeEnv:
+        return homeEnv
     return os.path.expanduser("~")
 
 

@@ -105,7 +105,7 @@ class PathClassifierTests(unittest.TestCase):
             self.assertEqual(classified.safetyLevel, PathSafetyLevel.FORBIDDEN)
             self.assertEqual(
                 os.path.normpath(classified.resolvedPath),
-                os.path.normpath(str(targetFile)),
+                os.path.normpath(os.path.realpath(str(targetFile))),
             )
             self.assertFalse(classifier.canDelete(classified))
 
@@ -225,7 +225,10 @@ class PathClassifierTests(unittest.TestCase):
             linkPath.symlink_to(realFile)
 
             resolved = self.classifier.resolvePath(str(linkPath))
-            self.assertEqual(os.path.normpath(resolved), os.path.normpath(str(realFile)))
+            self.assertEqual(
+                os.path.normpath(resolved),
+                os.path.normpath(os.path.realpath(str(realFile))),
+            )
 
     def testResolveMissingLeafUsesParentChain(self) -> None:
         with tempfile.TemporaryDirectory() as tempDir:

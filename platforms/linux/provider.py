@@ -178,7 +178,7 @@ class LinuxProvider(IPlatformProvider):
 
     def getStartupItems(self) -> list[dict]:
         """Enumerate XDG autostart ``.desktop`` entries (informational)."""
-        homeDirectory = os.path.expanduser("~")
+        homeDirectory = linuxPaths.getHomeDirectory()
         searchDirs = [
             os.path.join(homeDirectory, ".config", "autostart"),
             "/etc/xdg/autostart",
@@ -228,19 +228,9 @@ class LinuxProvider(IPlatformProvider):
 
     def detectEnvironment(self) -> dict:
         isLinux = sys.platform.startswith("linux")
-        distroInfo = (
-            getDistroInfo(self._osReleasePath)
-            if isLinux
-            else {
-                "id": "",
-                "idLike": "",
-                "name": "",
-                "prettyName": "",
-                "versionId": "",
-                "family": "unknown",
-                "isConfident": False,
-            }
-        )
+        # Always parse the configured os-release path so unit tests can inject a
+        # fake file on non-Linux hosts; confidence stays fail-closed off-platform.
+        distroInfo = getDistroInfo(self._osReleasePath)
         isConfident = bool(isLinux and distroInfo.get("isConfident"))
         return {
             "platformId": PlatformId.LINUX.value,
@@ -248,7 +238,7 @@ class LinuxProvider(IPlatformProvider):
             "version": platform.version() if isLinux else "",
             "release": platform.release() if isLinux else "",
             "machine": platform.machine(),
-            "kernel": platform.release() if isLinux else "",
+            "kernel": platform.release() if isLinux else platform.release(),
             "distroId": distroInfo.get("id", ""),
             "distroFamily": distroInfo.get("family", "unknown"),
             "distroPrettyName": distroInfo.get("prettyName", ""),

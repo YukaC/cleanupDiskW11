@@ -49,5 +49,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run safety, core, and platform mock tests
-        run: pytest tests/test_safety tests/test_core tests/test_linux tests/test_macos -q
+      - name: Run safety and core tests
+        run: pytest tests/test_safety tests/test_core -q
+
+      - name: Run Linux provider tests
+        if: runner.os == 'Linux'
+        run: pytest tests/test_linux -q
+
+      - name: Run macOS provider tests
+        if: runner.os == 'macOS'
+        run: pytest tests/test_macos -q
+
+      - name: Run Windows provider tests
+        if: runner.os == 'Windows'
+        run: pytest tests/test_windows -q

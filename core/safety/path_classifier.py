@@ -82,14 +82,31 @@ class PathClassifier:
         parent chain and rejoining the missing suffix (abspath fallback).
 
         Windows drive/UNC paths are normalized with ntpath so classification
-        still works when the host OS is POSIX.
+        still works when the host OS is POSIX. POSIX-style paths (``/…``) keep
+        POSIX semantics even when the host is Windows, so Linux/macOS rules can
+        be unit-tested cross-platform.
         """
+        import posixpath
+
         if not path:
             return os.path.abspath(os.curdir)
 
         expanded = os.path.expandvars(os.path.expanduser(path))
         if self._looksLikeWindowsAbsolute(expanded):
-            return ntpath.normpath(expanded.replace("/", "\\"))
+            windowsPath = ntpath.normpath(expanded.replace("/", "\\"))
+            if os.name == "nt" and os.path.lexists(windowsPath):
+                try:
+                    return os.path.realpath(windowsPath)
+                except OSError:
+                    return windowsPath
+            return windowsPath
+
+        # POSIX absolute path — never let Windows abspath rewrite ``/tmp`` → ``C:\tmp``.
+        if expanded.startswith("/"):
+            posixNormalized = posixpath.normpath(expanded)
+            if os.name != "nt":
+                return self._resolveExistingChain(os.path.abspath(expanded))
+            return posixNormalized
 
         absolutePath = os.path.abspath(expanded)
         return self._resolveExistingChain(absolutePath)
