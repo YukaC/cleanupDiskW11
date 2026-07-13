@@ -90,12 +90,20 @@ def getDistroInfo(osReleasePath: str = "/etc/os-release") -> dict:
     """Return parsed os-release fields plus detected family."""
     fields = parseOsRelease(osReleasePath)
     family = detectDistroFamily(osReleasePath)
+    hasFields = bool(fields.get("ID") or fields.get("ID_LIKE") or fields.get("NAME"))
     return {
         "id": fields.get("ID", ""),
         "idLike": fields.get("ID_LIKE", ""),
         "name": fields.get("NAME", ""),
         "prettyName": fields.get("PRETTY_NAME", ""),
         "versionId": fields.get("VERSION_ID", ""),
+        "versionCodename": fields.get("VERSION_CODENAME", ""),
+        "homeUrl": fields.get("HOME_URL", ""),
         "family": family,
-        "isConfident": bool(fields) and family != "unknown",
+        "isConfident": hasFields and family != "unknown",
     }
+
+
+def listKnownFamilies() -> tuple[str, ...]:
+    """Return supported distro family identifiers."""
+    return ("debian", "rhel", "arch", "suse")
