@@ -1,0 +1,1 @@
+"""macOS provider package tests."""
