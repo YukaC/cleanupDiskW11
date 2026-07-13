@@ -37,8 +37,13 @@ class NullProvider(IPlatformProvider):
             "message": "Trash operations are not available on unknown platforms",
         }
 
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
-        _ = description
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
+        _ = description, targetPath
         return SnapshotResult(
             isSuccess=False,
             snapshotId="",

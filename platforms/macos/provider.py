@@ -158,8 +158,14 @@ class MacosProvider(IPlatformProvider):
             "tccGuidance": self.detectTccDenial(trashPath),
         }
 
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
         """Create a Time Machine local snapshot via ``tmutil localsnapshot``."""
+        _ = targetPath  # tmutil localsnapshot stores on the system volume.
         return snapshot.createLocalSnapshot(description=description)
 
     def listSnapshots(self) -> list[dict]:

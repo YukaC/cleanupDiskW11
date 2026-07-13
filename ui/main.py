@@ -14,7 +14,7 @@ import customtkinter as ctk
 
 from core.cleanup_engine import CleanupEngine
 from core.disk_analyzer import getDiskUsage, getSizeFormatted
-from core.models import PathSafetyLevel
+from core.models import PathSafetyLevel, PlatformId
 from core.safety.audit_log import AuditLog
 from core.task_registry import CleanupTaskDefinition, buildDefaultTaskRegistry
 from platforms.factory import getProvider
@@ -677,6 +677,22 @@ class CleanupOsApp(ctk.CTk):
             self.after(0, lambda: self._setButtonsEnabled(True))
             self.after(0, lambda: self._updateProgress(self.tr("analysis_complete"), 1.0))
 
+    def _askSnapshotDirectory(self) -> Optional[str]:
+        """Ask the user where to store the backup/snapshot (never assume a path)."""
+        if self.provider.getPlatformId() != PlatformId.LINUX:
+            return None
+        messagebox.showinfo(
+            self.tr("snapshot_dir_title"),
+            self.tr("snapshot_dir_prompt"),
+        )
+        chosen = filedialog.askdirectory(
+            title=self.tr("snapshot_dir_title"),
+            mustexist=True,
+        )
+        if not chosen:
+            return None
+        return chosen
+
     def _onClean(self) -> None:
         if self.isBusy:
             messagebox.showwarning(self.tr("busy_title"), self.tr("busy_msg"))
@@ -686,6 +702,7 @@ class CleanupOsApp(ctk.CTk):
             messagebox.showwarning(self.tr("error"), self.tr("no_tasks"))
             return
 
+        snapshotTargetPath = None
         if self._selectedIncludesReviewOrAdvanced(taskIds):
             if not messagebox.askyesno(
                 self.tr("review_warn_title"),
@@ -693,6 +710,14 @@ class CleanupOsApp(ctk.CTk):
                 icon="warning",
             ):
                 return
+            if self.provider.getPlatformId() == PlatformId.LINUX:
+                snapshotTargetPath = self._askSnapshotDirectory()
+                if not snapshotTargetPath:
+                    messagebox.showwarning(
+                        self.tr("snapshot_dir_title"),
+                        self.tr("snapshot_dir_required"),
+                    )
+                    return
 
         if not messagebox.askyesno(
             self.tr("clean_title"),
@@ -704,10 +729,18 @@ class CleanupOsApp(ctk.CTk):
         self._log(self.tr("clean_start"))
         self.isBusy = True
         self._setButtonsEnabled(False)
-        thread = threading.Thread(target=self._cleanThread, args=(taskIds,), daemon=True)
+        thread = threading.Thread(
+            target=self._cleanThread,
+            args=(taskIds, snapshotTargetPath),
+            daemon=True,
+        )
         thread.start()
 
-    def _cleanThread(self, taskIds: list[str]) -> None:
+    def _cleanThread(
+        self,
+        taskIds: list[str],
+        snapshotTargetPath: Optional[str] = None,
+    ) -> None:
         try:
             def progressCallback(msg, percent, filePath=""):
                 self.after(
@@ -721,6 +754,7 @@ class CleanupOsApp(ctk.CTk):
                 taskIds,
                 dryRun=False,
                 progressCallback=progressCallback,
+                snapshotTargetPath=snapshotTargetPath,
             )
             self.after(0, lambda: self._displayRunResults(results, isDryRun=False))
             self.after(0, self._updateDiskInfo)
@@ -735,13 +769,27 @@ class CleanupOsApp(ctk.CTk):
         if self.isBusy:
             messagebox.showwarning(self.tr("busy_title"), self.tr("busy_msg"))
             return
+
+        snapshotTargetPath = None
+        if self.provider.getPlatformId() == PlatformId.LINUX:
+            snapshotTargetPath = self._askSnapshotDirectory()
+            if not snapshotTargetPath:
+                messagebox.showwarning(
+                    self.tr("snapshot_dir_title"),
+                    self.tr("snapshot_dir_required"),
+                )
+                return
+
         self._log(self.tr("creating_snapshot"))
         self.isBusy = True
         self._setButtonsEnabled(False)
 
         def snapshotThread() -> None:
             try:
-                result = self.provider.createSnapshot("CleanupOs - Manual snapshot")
+                result = self.provider.createSnapshot(
+                    "CleanupOs - Manual snapshot",
+                    targetPath=snapshotTargetPath,
+                )
                 if result.isSuccess:
                     self.after(
                         0,

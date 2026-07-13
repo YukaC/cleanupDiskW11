@@ -162,6 +162,28 @@ def cmdClean(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
 
+    snapshotTargetPath = getattr(args, "snapshot_dir", None)
+    provider = engine.provider
+    if (
+        not isDryRun
+        and provider.getPlatformId().value == "linux"
+        and not snapshotTargetPath
+    ):
+        registry = {task.id: task for task in platformTasks}
+        hasReviewPlus = any(
+            registry[taskId].safetyLevel
+            in (PathSafetyLevel.REVIEW, PathSafetyLevel.ADVANCED)
+            for taskId in taskIds
+            if taskId in registry
+        )
+        if hasReviewPlus:
+            print(
+                "Linux REVIEW/ADVANCED clean requires --snapshot-dir PATH "
+                "(existing writable directory).",
+                file=sys.stderr,
+            )
+            return 2
+
     def progressCallback(message: str, percent: float, _path: str = "") -> None:
         if not args.quiet:
             print(f"[{percent:5.1f}%] {message}", flush=True)
@@ -170,6 +192,7 @@ def cmdClean(args: argparse.Namespace) -> int:
         taskIds,
         dryRun=isDryRun,
         progressCallback=None if args.quiet else progressCallback,
+        snapshotTargetPath=snapshotTargetPath,
     )
     if args.format == "json":
         print(json.dumps(results, ensure_ascii=False, indent=2))
@@ -310,6 +333,14 @@ def buildParser() -> argparse.ArgumentParser:
         type=_parseLevel,
         default=PathSafetyLevel.SAFE,
         help="Maximum safety level (default: safe)",
+    )
+    cleanParser.add_argument(
+        "--snapshot-dir",
+        default=None,
+        help=(
+            "Existing directory for Linux snapshots/backups "
+            "(required for REVIEW/ADVANCED clean on Linux)"
+        ),
     )
     cleanParser.add_argument(
         "--format",

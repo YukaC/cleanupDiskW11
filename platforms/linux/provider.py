@@ -146,21 +146,58 @@ class LinuxProvider(IPlatformProvider):
             "trashRoot": linuxPaths.getTrashRoot(),
         }
 
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
         """
-        Create a restore snapshot: Timeshift → Btrfs → LVM probe.
+        Create a restore snapshot into a user-chosen directory when needed.
 
-        Fail-closed when no supported mechanism is available or usable.
+        Linux never assumes ``/.snapshots``. Pass ``targetPath`` (existing dir).
+        Order: Btrfs into ``targetPath`` → Timeshift (ignores path) → LVM probe.
         """
         label = (description or "CleanupOs snapshot").strip() or "CleanupOs snapshot"
 
-        timeshiftResult = self._tryTimeshiftSnapshot(label)
-        if timeshiftResult is not None:
-            return timeshiftResult
+        if not targetPath or not str(targetPath).strip():
+            return SnapshotResult(
+                isSuccess=False,
+                snapshotId="",
+                message=(
+                    "Snapshot destination required — choose an existing directory "
+                    "where CleanupOs should create the backup"
+                ),
+                platformId=PlatformId.LINUX,
+            )
 
-        btrfsResult = self._tryBtrfsSnapshot(label)
+        destination = Path(os.path.expanduser(str(targetPath))).resolve()
+        if not destination.is_dir():
+            return SnapshotResult(
+                isSuccess=False,
+                snapshotId="",
+                message=f"Snapshot destination is not an existing directory: {destination}",
+                platformId=PlatformId.LINUX,
+            )
+
+        btrfsResult = self._tryBtrfsSnapshot(label, destination)
         if btrfsResult is not None:
             return btrfsResult
+
+        timeshiftResult = self._tryTimeshiftSnapshot(label)
+        if timeshiftResult is not None:
+            # Timeshift uses its own store; still record the user-chosen path in the message.
+            if timeshiftResult.isSuccess:
+                timeshiftResult = SnapshotResult(
+                    isSuccess=True,
+                    snapshotId=timeshiftResult.snapshotId,
+                    message=(
+                        f"{timeshiftResult.message} "
+                        f"(user-selected folder noted: {destination})"
+                    ),
+                    platformId=PlatformId.LINUX,
+                )
+            return timeshiftResult
 
         lvmResult = self._tryLvmSnapshot(label)
         if lvmResult is not None:
@@ -170,8 +207,8 @@ class LinuxProvider(IPlatformProvider):
             isSuccess=False,
             snapshotId="",
             message=(
-                "No snapshot mechanism available "
-                "(Timeshift, Btrfs root subvolume, or LVM); fail-closed"
+                f"No snapshot mechanism available for destination {destination} "
+                "(need Btrfs root + writable folder, Timeshift, or LVM); fail-closed"
             ),
             platformId=PlatformId.LINUX,
         )
@@ -358,7 +395,11 @@ class LinuxProvider(IPlatformProvider):
             platformId=PlatformId.LINUX,
         )
 
-    def _tryBtrfsSnapshot(self, label: str) -> Optional[SnapshotResult]:
+    def _tryBtrfsSnapshot(
+        self,
+        label: str,
+        snapshotParent: Path,
+    ) -> Optional[SnapshotResult]:
         if not self._isRootBtrfs():
             return None
 
@@ -371,21 +412,27 @@ class LinuxProvider(IPlatformProvider):
                 platformId=PlatformId.LINUX,
             )
 
-        snapshotId = f"cleanupos-{int(time.time())}"
-        snapshotParent = Path("/.snapshots")
-        snapshotTarget = snapshotParent / snapshotId
-
-        # Prefer existing /.snapshots; otherwise fail-closed (do not mkdir /).
         if not snapshotParent.is_dir():
             return SnapshotResult(
                 isSuccess=False,
                 snapshotId="",
+                message=f"Snapshot destination does not exist: {snapshotParent}",
+                platformId=PlatformId.LINUX,
+            )
+
+        if not os.access(snapshotParent, os.W_OK):
+            return SnapshotResult(
+                isSuccess=False,
+                snapshotId="",
                 message=(
-                    "Root is Btrfs but /.snapshots is missing; "
-                    "create it (e.g. snapper) before snapshotting"
+                    f"Snapshot destination is not writable: {snapshotParent}. "
+                    "Choose another folder or run with elevation."
                 ),
                 platformId=PlatformId.LINUX,
             )
+
+        snapshotId = f"cleanupos-{int(time.time())}"
+        snapshotTarget = snapshotParent / snapshotId
 
         command = [
             btrfsPath,
@@ -421,8 +468,8 @@ class LinuxProvider(IPlatformProvider):
 
         return SnapshotResult(
             isSuccess=True,
-            snapshotId=snapshotId,
-            message=f"Btrfs snapshot created at {snapshotTarget} ({label})",
+            snapshotId=str(snapshotTarget),
+            message=f"Btrfs snapshot of / at {snapshotTarget} ({label})",
             platformId=PlatformId.LINUX,
         )
 

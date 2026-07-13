@@ -87,45 +87,57 @@ def test_emptyTrashDryRun(tmp_path: Path, monkeypatch) -> None:
     assert sample.exists()
 
 
-def test_createSnapshotFailClosedWhenNoBackend() -> None:
+def test_createSnapshotFailClosedWhenNoBackend(tmp_path: Path) -> None:
     provider = _makeProvider(whichMap={})
     # Force non-btrfs / non-lvm by stubbing helpers.
     provider._isRootBtrfs = lambda: False  # type: ignore[method-assign]
     provider._probeRootLogicalVolume = lambda: None  # type: ignore[method-assign]
-    result = provider.createSnapshot("test")
+    result = provider.createSnapshot("test", targetPath=str(tmp_path))
     assert result.isSuccess is False
     assert result.platformId == PlatformId.LINUX
-    assert "fail-closed" in result.message.lower() or "no snapshot" in result.message.lower()
+    assert (
+        "fail-closed" in result.message.lower()
+        or "no snapshot" in result.message.lower()
+    )
 
 
-def test_createSnapshotUsesTimeshiftWhenPresent() -> None:
+def test_createSnapshotRequiresDestination() -> None:
+    provider = _makeProvider(whichMap={"timeshift": "/usr/bin/timeshift"})
+    result = provider.createSnapshot("before clean")
+    assert result.isSuccess is False
+    assert "destination required" in result.message.lower()
+
+
+def test_createSnapshotUsesTimeshiftWhenPresent(tmp_path: Path) -> None:
     runMock = MagicMock()
     runMock.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
     provider = _makeProvider(
         whichMap={"timeshift": "/usr/bin/timeshift"},
         runFn=runMock,
     )
-    result = provider.createSnapshot("before clean")
+    # Force non-btrfs so Timeshift path is used after destination check.
+    provider._isRootBtrfs = lambda: False  # type: ignore[method-assign]
+    result = provider.createSnapshot("before clean", targetPath=str(tmp_path))
     assert result.isSuccess is True
     assert result.snapshotId.startswith("timeshift-")
     assert runMock.call_args[0][0][0] == "/usr/bin/timeshift"
 
 
-def test_createSnapshotTriesBtrfsWhenNoTimeshift() -> None:
+def test_createSnapshotTriesBtrfsWhenNoTimeshift(tmp_path: Path) -> None:
     from core.models import SnapshotResult
 
     provider = _makeProvider(whichMap={})
 
-    def successBtrfs(label: str):
+    def successBtrfs(label: str, snapshotParent):
         return SnapshotResult(
             isSuccess=True,
             snapshotId="cleanupos-1",
-            message=f"Btrfs snapshot ({label})",
+            message=f"Btrfs snapshot ({label}) at {snapshotParent}",
             platformId=PlatformId.LINUX,
         )
 
     provider._tryBtrfsSnapshot = successBtrfs  # type: ignore[method-assign]
-    result = provider.createSnapshot("btrfs test")
+    result = provider.createSnapshot("btrfs test", targetPath=str(tmp_path))
     assert result.isSuccess is True
     assert result.snapshotId == "cleanupos-1"
 

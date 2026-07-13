@@ -47,8 +47,14 @@ class FakeWindowsProvider:
             "message": "ok",
         }
 
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
         self.snapshotCalls += 1
+        _ = targetPath
         if self.shouldSnapshotSucceed:
             return SnapshotResult(
                 isSuccess=True,

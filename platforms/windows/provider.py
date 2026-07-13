@@ -29,8 +29,14 @@ class WindowsProvider(IPlatformProvider):
     def emptyTrash(self, dryRun: bool = True) -> dict:
         return windowsServices.emptyRecycleBin(dryRun=dryRun)
 
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
         snapshotDescription = description or "CleanupOs - Before Cleanup"
+        _ = targetPath  # System Restore does not use a user folder destination.
         isSuccess, message = windowsServices.createRestorePoint(snapshotDescription)
         snapshotId = ""
         if isSuccess and "ID:" in message:

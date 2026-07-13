@@ -92,7 +92,10 @@ class CleanupEngine:
         platformId = self.provider.getPlatformId()
         self.snapshotManager.registerProvider(
             platformId,
-            lambda description: self.provider.createSnapshot(description),
+            lambda description="", targetPath=None: self.provider.createSnapshot(
+                description,
+                targetPath=targetPath,
+            ),
         )
 
     def _setupLogger(self) -> logging.Logger:
@@ -160,12 +163,14 @@ class CleanupEngine:
         taskIds: List[str],
         dryRun: bool = True,
         progressCallback: Optional[Callable] = None,
+        snapshotTargetPath: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run cleanup tasks through the safety pipeline.
 
         Every file candidate is classified; FORBIDDEN paths are skipped.
         Non-dry-run REVIEW/ADVANCED work requires a successful snapshot first.
+        On Linux, ``snapshotTargetPath`` must be a user-chosen existing directory.
         """
         self.resetCancel()
         summary: Dict[str, Any] = {
@@ -186,10 +191,22 @@ class CleanupEngine:
             PathSafetyLevel.REVIEW,
             PathSafetyLevel.ADVANCED,
         ):
+            if (
+                self.provider.getPlatformId() == PlatformId.LINUX
+                and not (snapshotTargetPath and str(snapshotTargetPath).strip())
+            ):
+                summary["errors"].append(
+                    "Snapshot destination required for REVIEW/ADVANCED cleanup on Linux "
+                    "— choose an existing backup directory"
+                )
+                self.logger.error(summary["errors"][-1])
+                return summary
+
             snapshotResult = self.snapshotManager.createSnapshot(
                 platformId=self.provider.getPlatformId(),
                 safetyLevel=requiredLevel,
                 description="CleanupOs - Before cleanup",
+                targetPath=snapshotTargetPath,
             )
             summary["snapshot"] = {
                 "isSuccess": snapshotResult.isSuccess,

@@ -46,7 +46,8 @@ def test_defaultStubBlocksReviewUntilImplemented() -> None:
 def test_successWhenProviderRegistered() -> None:
     manager = SnapshotManager(shouldRegisterDefaultStubs=False)
 
-    def fakeProvider(description: str) -> SnapshotResult:
+    def fakeProvider(description: str = "", *, targetPath: str | None = None) -> SnapshotResult:
+        _ = targetPath
         return SnapshotResult(
             isSuccess=True,
             snapshotId="snap-42",
@@ -68,7 +69,12 @@ def test_successWhenProviderRegistered() -> None:
 def test_providerFailureIsFailClosed() -> None:
     manager = SnapshotManager(shouldRegisterDefaultStubs=False)
 
-    def failingProvider(description: str) -> SnapshotResult:
+    def failingProvider(
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
+        _ = description, targetPath
         return SnapshotResult(
             isSuccess=False,
             snapshotId="",

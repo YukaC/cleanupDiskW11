@@ -2,21 +2,32 @@
 
 from __future__ import annotations
 
-from typing import Callable, Protocol
+from typing import Callable, Optional, Protocol
 
 from core.models import PathSafetyLevel, PlatformId, SnapshotResult
 
-SnapshotProvider = Callable[[str], SnapshotResult]
-
 
 class SnapshotProviderProtocol(Protocol):
-    """Callable that creates a platform snapshot from a description."""
+    """Callable that creates a platform snapshot from a description + optional path."""
 
-    def __call__(self, description: str) -> SnapshotResult: ...
+    def __call__(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult: ...
+
+
+SnapshotProvider = Callable[..., SnapshotResult]
 
 
 def _makeStubProvider(platformId: PlatformId) -> SnapshotProvider:
-    def stubProvider(description: str) -> SnapshotResult:
+    def stubProvider(
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
+        _ = description, targetPath
         return SnapshotResult(
             isSuccess=False,
             snapshotId="",
@@ -52,6 +63,8 @@ class SnapshotManager:
         platformId: PlatformId,
         safetyLevel: PathSafetyLevel,
         description: str = "",
+        *,
+        targetPath: Optional[str] = None,
     ) -> SnapshotResult:
         """Create a snapshot, or skip for SAFE paths. REVIEW/ADVANCED are fail-closed."""
         if safetyLevel == PathSafetyLevel.SAFE:
@@ -82,7 +95,7 @@ class SnapshotManager:
                 platformId=platformId,
             )
 
-        result = provider(description)
+        result = provider(description, targetPath=targetPath)
         if not result.isSuccess:
             return SnapshotResult(
                 isSuccess=False,

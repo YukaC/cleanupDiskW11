@@ -40,8 +40,20 @@ class IPlatformProvider(ABC):
         """
 
     @abstractmethod
-    def createSnapshot(self, description: str = "") -> SnapshotResult:
-        """Create a restore snapshot before destructive work. Fail-closed when stubbed."""
+    def createSnapshot(
+        self,
+        description: str = "",
+        *,
+        targetPath: str | None = None,
+    ) -> SnapshotResult:
+        """
+        Create a restore snapshot before destructive work.
+
+        ``targetPath`` is the user-chosen destination directory when the platform
+        stores snapshots on disk (Linux Btrfs). Windows System Restore and macOS
+        ``tmutil`` may ignore it. Fail-closed when stubbed or when a required
+        destination is missing.
+        """
 
     @abstractmethod
     def getStartupItems(self) -> list[dict]:
