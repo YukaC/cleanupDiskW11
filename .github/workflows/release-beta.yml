@@ -1,0 +1,167 @@
+name: release-beta
+
+# CleanupOs BETA / UNSTABLE artifacts → GitHub Pre-release
+# Trigger: tag v2.0.0b* / workflow_dispatch
+# Signing/notarization only if repository secrets are present.
+
+on:
+  push:
+    tags:
+      - "v2.0.0b*"
+      - "v2.0.0-beta*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Pre-release tag (e.g. v2.0.0b1)"
+        required: true
+        default: "v2.0.0b1"
+
+permissions:
+  contents: write
+
+env:
+  CLEANUPOS_VERSION: "2.0.0b1"
+  CLEANUPOS_CHANNEL: "beta-unstable"
+
+jobs:
+  build-windows:
+    name: build-windows-beta
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and build
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,packaging]"
+          python packaging/build_beta.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-beta
+          path: dist/beta/*
+
+  build-macos:
+    name: build-macos-beta
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and build
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,packaging]"
+          pip install customtkinter psutil Pillow
+          python packaging/build_beta.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-beta
+          path: dist/beta/*
+
+  build-linux:
+    name: build-linux-beta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtk8.6
+
+      - name: Install nfpm
+        env:
+          NFPM_VERSION: "2.41.1"
+        run: |
+          curl -sL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin nfpm
+          nfpm --version
+
+      - name: Install and build
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,packaging]"
+          python packaging/build_beta.py
+
+      - name: Attach AUR beta PKGBUILD
+        run: |
+          cp packaging/linux/PKGBUILD-beta dist/beta/PKGBUILD-cleanup-os-beta
+          cp packaging/BETA.md dist/beta/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-beta
+          path: dist/beta/*
+
+  publish-prerelease:
+    name: publish-github-prerelease
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f -print0 | xargs -0 -I{} cp {} release-assets/
+          ls -lah release-assets
+          printf '%s\n' \
+            '# CleanupOs 2.0.0b1 — BETA / UNSTABLE' \
+            '' \
+            '> **Pre-release channel.** Not production-ready. Artifacts are **unsigned** by default' \
+            '> (no Authenticode / no Apple notarization unless secrets are configured).' \
+            '' \
+            'SmartScreen and Gatekeeper warnings are expected.' \
+            '' \
+            'See `packaging/BETA.md` in the repository.' \
+            '' \
+            '## Safety' \
+            '' \
+            'Hardcoded denylist remains enforced. Beta does **not** disable `core/safety`.' \
+            '' \
+            '## Assets' \
+            '' \
+            '- Windows: portable `.exe`' \
+            '- macOS: `.app` zip (unsigned)' \
+            '- Linux: `.tar.gz`, `.deb`, `.rpm` when built' \
+            '- AUR: `PKGBUILD-cleanup-os-beta`' \
+            > release-assets/RELEASE_NOTES_BETA.md
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: CleanupOs ${{ env.CLEANUPOS_VERSION }} (BETA / UNSTABLE)
+          prerelease: true
+          draft: false
+          body_path: release-assets/RELEASE_NOTES_BETA.md
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

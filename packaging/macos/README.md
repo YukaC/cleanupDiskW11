@@ -1,5 +1,18 @@
 # macOS packaging (CleanupOs)
 
+## BETA / UNSTABLE (canal actual)
+
+```bash
+pip install -e ".[dev,packaging]"
+python packaging/build_beta.py
+# → dist/beta/CleanupOs-2.0.0b1-macos-app.zip
+```
+
+**Sin notarización en beta** (Gatekeeper avisará). Checklist de firma abajo es para estable.
+Ver [`../BETA.md`](../BETA.md) y workflow `release-beta.yml`.
+
+---
+
 Notes for producing a signed `.app` bundle and `.dmg`, plus notarization.
 No binaries or certificates are stored in this repository.
 

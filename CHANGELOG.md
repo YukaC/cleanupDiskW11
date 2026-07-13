@@ -5,7 +5,26 @@ All notable changes to **CleanupOs** are documented here.
 Format inspired by [Keep a Changelog](https://keepachangelog.com/).
 Versioning follows [SemVer](https://semver.org/) once `2.0.0` is released.
 
-## [Unreleased] — 2.0.0-dev
+## [2.0.0b1] — 2026-07-12 — BETA / UNSTABLE
+
+Pre-release channel for GitHub. **Not production-signed** by default
+(no Authenticode / no Apple notarization unless CI secrets are configured).
+
+### Added
+
+- Version channel markers (`core/version.py`, `packaging/BETA.md`).
+- Multi-OS beta build script `packaging/build_beta.py` + PyInstaller spec.
+- Linux `.deb`/`.rpm` via nfpm (`packaging/linux/nfpm.yaml`).
+- AUR draft `packaging/linux/PKGBUILD-beta` (`cleanup-os-beta`).
+- GitHub Actions workflow `release-beta.yml` → **Pre-release** assets.
+
+### Safety
+
+- Denylist / quarantine / fail-closed snapshot rules unchanged in beta.
+
+---
+
+## [Unreleased] — post-beta
 
 Multi-OS pivot from the Windows-11-only tool toward CleanupOs
 (*System cleanup and optimization — Windows · Linux · macOS*).

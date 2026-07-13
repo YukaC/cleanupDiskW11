@@ -1,0 +1,36 @@
+# nfpm config — CleanupOs BETA / UNSTABLE (.deb / .rpm)
+# https://nfpm.goreleaser.com/
+#
+# Expects a staged binary at dist/beta/linux-stage/CleanupOs/CleanupOs
+# (created by packaging/build_beta.py).
+
+name: cleanup-os-beta
+arch: amd64
+platform: linux
+version: "2.0.0b1"
+release: "1"
+section: utils
+priority: optional
+maintainer: "YukaC <https://github.com/YukaC>"
+description: |
+  CleanupOs BETA / UNSTABLE — multi-OS cleanup suite (Linux build).
+  Pre-release channel. Not production-signed. See packaging/BETA.md.
+vendor: YukaC
+homepage: https://github.com/YukaC/cleanupDiskW11
+license: MIT
+contents:
+  - src: dist/beta/linux-stage/CleanupOs/CleanupOs
+    dst: /usr/bin/cleanup-os
+    file_info:
+      mode: 0755
+  - src: packaging/BETA.md
+    dst: /usr/share/doc/cleanup-os-beta/BETA.md
+  - src: LICENSE
+    dst: /usr/share/doc/cleanup-os-beta/LICENSE
+overrides:
+  deb:
+    depends:
+      - libtk
+  rpm:
+    depends:
+      - tk

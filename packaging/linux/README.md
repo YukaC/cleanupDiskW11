@@ -1,7 +1,18 @@
 # Linux packaging (CleanupOs)
 
-Skeleton notes for distro packages, AppImage, and Flatpak. No binary artifacts
-are committed here.
+## BETA / UNSTABLE (canal actual)
+
+| Artefacto | Cómo |
+|-----------|------|
+| Binary + wheel | `python packaging/build_beta.py` |
+| `.deb` / `.rpm` | `nfpm` + [`nfpm.yaml`](nfpm.yaml) (CI lo instala) |
+| AUR draft | [`PKGBUILD-beta`](PKGBUILD-beta) → paquete `cleanup-os-beta` |
+
+Detalles y avisos de firma: [`../BETA.md`](../BETA.md).
+
+Publicación GitHub: workflow `.github/workflows/release-beta.yml` (Pre-release).
+
+---
 
 ## Flatpak
 

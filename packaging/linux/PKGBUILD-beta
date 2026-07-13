@@ -1,0 +1,40 @@
+# Maintainer: YukaC <https://github.com/YukaC>
+# AUR package: cleanup-os-beta (BETA / UNSTABLE channel)
+#
+# Do not use this PKGBUILD for a stable AUR package named cleanup-os.
+# Safety: keep hardcoded denylist; never load forbidden paths from user config.
+
+pkgname=cleanup-os-beta
+pkgver=2.0.0b1
+pkgrel=1
+pkgdesc='CleanupOs BETA/UNSTABLE — system cleanup for Windows · Linux · macOS'
+arch=('any')
+url='https://github.com/YukaC/cleanupDiskW11'
+license=('MIT')
+depends=('python' 'python-psutil' 'python-pillow' 'tk')
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+provides=('cleanup-os')
+conflicts=('cleanup-os')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  # Tag archive directory name follows GitHub conventions.
+  if [[ -d "$srcdir/cleanupDiskW11-${pkgver}" ]]; then
+    mv "$srcdir/cleanupDiskW11-${pkgver}" "$srcdir/$pkgname-$pkgver"
+  elif [[ -d "$srcdir/CleanupOs-${pkgver}" ]]; then
+    mv "$srcdir/CleanupOs-${pkgver}" "$srcdir/$pkgname-$pkgver"
+  fi
+}
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 packaging/BETA.md "$pkgdir/usr/share/doc/$pkgname/BETA.md"
+}

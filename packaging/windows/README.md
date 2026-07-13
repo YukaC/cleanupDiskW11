@@ -1,5 +1,17 @@
 # Windows packaging (CleanupOs)
 
+## BETA / UNSTABLE (canal actual)
+
+```bash
+pip install -e ".[dev,packaging]"
+python packaging/build_beta.py
+# → dist/beta/CleanupOs-2.0.0b1-windows-x64.exe
+```
+
+**Sin Authenticode en beta** (SmartScreen avisará). Ver [`../BETA.md`](../BETA.md).
+
+---
+
 Build notes for producing a Windows installer or portable binary. No release
 binaries live in this tree — only stubs and documentation.
 

@@ -51,6 +51,12 @@ test_files/
 
 # PyInstaller
 *.spec
+!packaging/cleanupos.spec
+
+# Beta build outputs (also covered by dist/)
+dist/beta/
+dist/pyinstaller/
+build/pyinstaller/
 
 # Debug scripts
 debug_*.py

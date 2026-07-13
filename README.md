@@ -2,12 +2,17 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.0--dev-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0b1-blue.svg)
+![Channel](https://img.shields.io/badge/channel-BETA%20%2F%20UNSTABLE-orange.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
 **System cleanup and optimization — Windows · Linux · macOS**
+
+> **Canal actual: BETA / UNSTABLE (`2.0.0b1`).** Builds para GitHub Pre-release;
+> **sin firma Authenticode / sin notarización Apple** por defecto. Ver
+> [packaging/BETA.md](packaging/BETA.md).
 
 Limpieza de sistema con arquitectura *safety-first*: denylist inmutable,
 clasificación de rutas, cuarentena y auditoría. Nunca daña el núcleo vital del SO.
@@ -106,6 +111,18 @@ pip install -e .
 
 python main.py
 ```
+
+### Builds BETA / UNSTABLE (GitHub Pre-release)
+
+```bash
+pip install -e ".[dev,packaging]"
+python packaging/build_beta.py          # artefacto local del SO actual
+```
+
+Publicar en GitHub: tag `v2.0.0b1` o Actions → **Release Beta (UNSTABLE)**.
+Documentación: [packaging/BETA.md](packaging/BETA.md).
+
+> Las builds beta van **sin firma de producción** (SmartScreen/Gatekeeper pueden avisar).
 
 ### Dependencias de desarrollo (opcionales)
 

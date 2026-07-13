@@ -60,6 +60,13 @@ class CleanupOsApp(ctk.CTk):
 
         self.title("CleanupOs")
         self.geometry("1100x750")
+        try:
+            from core.version import DISPLAY_VERSION, IS_UNSTABLE
+
+            if IS_UNSTABLE:
+                self.title(f"CleanupOs {DISPLAY_VERSION}")
+        except Exception:
+            pass
         self.minsize(1000, 650)
         self.configure(fg_color=COLORS["bg"])
 

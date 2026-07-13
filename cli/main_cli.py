@@ -255,7 +255,17 @@ def buildParser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="cleanup-os",
-        description="CleanupOs — cross-platform disk cleanup (headless CLI)",
+        description=(
+            "CleanupOs — cross-platform disk cleanup (headless CLI) "
+            "[BETA / UNSTABLE]"
+        ),
+    )
+    from core.version import DISPLAY_VERSION
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"cleanup-os {DISPLAY_VERSION}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

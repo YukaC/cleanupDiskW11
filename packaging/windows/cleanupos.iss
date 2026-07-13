@@ -10,7 +10,7 @@
 ; lists from user config.
 
 #define MyAppName "CleanupOs"
-#define MyAppVersion "2.0.0-dev"
+#define MyAppVersion "2.0.0b1"
 #define MyAppPublisher "YukaC"
 #define MyAppURL "https://github.com/YukaC/cleanupDiskW11"
 #define MyAppExeName "CleanupOs.exe"
