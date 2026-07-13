@@ -20,6 +20,10 @@ dev = [
     "pytest",
 ]
 
+[project.scripts]
+cleanup-os = "cli.main_cli:main"
+cleanup-os-gui = "ui.main:main"
+
 [tool.setuptools.packages.find]
 include = [
     "core*",
@@ -27,6 +31,9 @@ include = [
     "ui*",
     "cli*",
 ]
+
+[tool.setuptools.package-data]
+ui = ["i18n/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
