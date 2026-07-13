@@ -55,3 +55,16 @@ test_files/
 # Debug scripts
 debug_*.py
 convert_icon.py
+
+# Tests / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Codegraph local daemon state (keep index; ignore runtime)
+.codegraph/daemon.sock
+.codegraph/daemon.pid
+.codegraph/daemon.log
+.codegraph/.gitignore
