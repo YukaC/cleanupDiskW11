@@ -28,9 +28,9 @@ jobs:
     name: build-windows-beta
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -41,7 +41,7 @@ jobs:
           pip install -e ".[dev,packaging]"
           python packaging/build_beta.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-beta
           path: dist/beta/*
@@ -50,9 +50,9 @@ jobs:
     name: build-macos-beta
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -63,7 +63,7 @@ jobs:
           pip install customtkinter psutil Pillow
           python packaging/build_beta.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-beta
           path: dist/beta/*
@@ -72,9 +72,9 @@ jobs:
     name: build-linux-beta
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -85,10 +85,15 @@ jobs:
 
       - name: Install nfpm
         env:
-          NFPM_VERSION: "2.41.1"
+          # Asset name uses Linux_x86_64 (not linux_amd64).
+          NFPM_VERSION: "2.47.0"
         run: |
-          curl -sL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_linux_amd64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin nfpm
+          set -euo pipefail
+          asset="nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          url="https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/${asset}"
+          curl -fsSL "$url" -o /tmp/nfpm.tgz
+          file /tmp/nfpm.tgz | grep -qi 'gzip' || { echo "Download is not gzip:"; head -c 200 /tmp/nfpm.tgz; exit 1; }
+          sudo tar -xzf /tmp/nfpm.tgz -C /usr/local/bin nfpm
           nfpm --version
 
       - name: Install and build
@@ -102,7 +107,7 @@ jobs:
           cp packaging/linux/PKGBUILD-beta dist/beta/PKGBUILD-cleanup-os-beta
           cp packaging/BETA.md dist/beta/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-beta
           path: dist/beta/*
@@ -112,9 +117,9 @@ jobs:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
