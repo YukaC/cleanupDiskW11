@@ -55,3 +55,10 @@ test_files/
 # Debug scripts
 debug_*.py
 convert_icon.py
+
+# CodeGraph local index
+.codegraph/
+
+# Environment and secrets
+.env
+.env.*
