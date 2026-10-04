@@ -103,6 +103,16 @@ def check_modes(verbose: bool) -> bool:
         )
         warn_code, warn_out = run_check(root, "module_state", mode="warn")
         block_code = run_check(root, "module_state", mode="block")[0]
+        
+        # Test per-rule mode blocking via .ra-check.json
+        write_files(
+            root,
+            {
+                ".ra-check.json": '{\n  "mode": "warn",\n  "rules": {\n    "stateless-app": "block"\n  }\n}\n'
+            }
+        )
+        per_rule_block_code = run_check(root, "module_state")[0]
+
         for name in ("src/session-store.js",):
             (root / name).unlink(missing_ok=True)
         clean_block_code = run_check(root, "module_state", mode="block")[0]
@@ -116,6 +126,7 @@ def check_modes(verbose: bool) -> bool:
             any(f["check"] == "stateless-app" for f in parse_findings(warn_out)),
         ),
         ("block mode exits 1 with violations", block_code == 1),
+        ("per-rule block mode exits 1 with violations", per_rule_block_code == 1),
         ("block mode exits 0 once clean", clean_block_code == 0),
     ]
     for label, passed in checks:
@@ -145,6 +156,7 @@ def _check_name(rule: str) -> str:
         "design_tokens": "design-tokens",
         "a11y_basic": "a11y-basic",
         "ui_states": "ui-states",
+        "lint_ratchet": "lint-ratchet",
     }[rule]
 
 

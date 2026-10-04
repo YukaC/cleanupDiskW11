@@ -81,6 +81,7 @@ TEST_PATH_RE = re.compile(
 
 DEFAULT_CONFIG = {
     "mode": "warn",
+    "rules": {},
     "allow": {
         "disk_paths": ["data/", "tmp/", "storage/", "uploads/", "cache/"],
         "endpoints": ["/api/health", "/healthz", "/health", "/api/healthz", "/readyz"],
@@ -170,6 +171,7 @@ def load_config(root: Path) -> dict:
     except (OSError, json.JSONDecodeError) as exc:
         raise SystemExit(f"ra-checks: invalid .ra-check.json: {exc}")
     config["mode"] = data.get("mode", config["mode"])
+    config["rules"] = data.get("rules") or {}
     for key, value in (data.get("allow") or {}).items():
         config["allow"][key] = value
     return config
