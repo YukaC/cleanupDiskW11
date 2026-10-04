@@ -250,4 +250,14 @@ CASES: list[Case] = [
             "  return <div>{rows.length}</div>;\n}\n"
         },
     ),
+    Case(
+        rule="lint_ratchet",
+        scaffold={**COMMON_SCAFFOLD},
+        seed={
+            ".lint-baseline.json": '{\n  "baseline": 2,\n  "current": 5,\n  "mode": "warn"\n}\n'
+        },
+        clean={
+            ".lint-baseline.json": '{\n  "baseline": 5,\n  "current": 2,\n  "mode": "warn"\n}\n'
+        },
+    ),
 ]

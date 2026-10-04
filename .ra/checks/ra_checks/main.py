@@ -11,7 +11,7 @@ from pathlib import Path
 if __package__ in (None, ""):  # allow running as a plain script
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ra_checks import frontend, observability, runtime  # noqa: E402
+from ra_checks import frontend, lint, observability, runtime  # noqa: E402
 from ra_checks.common import Finding, Project, open_project  # noqa: E402
 from ra_checks.detect import detect  # noqa: E402
 
@@ -19,6 +19,7 @@ ALL_RULES = (
     runtime.RUNTIME_RULES
     + observability.OBSERVABILITY_RULES
     + frontend.FRONTEND_RULES
+    + lint.LINT_RULES
 )
 
 
@@ -99,6 +100,7 @@ NOT_APPLICABLE_WHEN = {
     "ui-states": lambda s: not s.frontend,
     "migration-reversible": lambda s: not s.sql,
     "artifact": lambda s: not s.backend,
+    "lint-ratchet": lambda s: False,
 }
 
 
@@ -106,19 +108,20 @@ def not_applicable(stack) -> list[str]:
     return sorted(c for c, skip in NOT_APPLICABLE_WHEN.items() if skip(stack))
 
 
-def effective_severity(finding: Finding, mode: str) -> str:
-    """`warn` downgrades every finding so nothing fails; `block` promotes them.
-
-    Rules report what they observed (WARN for design gaps, FAIL for hard problems);
-    whether the pipeline stops is a policy decision of the project, not of the rule.
+def effective_severity(finding: Finding, mode: str, rules_config: dict | None = None) -> str:
+    """`warn` downgrades finding; `block` promotes.
+    Per-rule mode in rules_config overrides global mode unless CLI --mode is passed or global mode is block.
     """
-    if mode == "block":
+    rule_mode = (rules_config or {}).get(finding.check)
+    eff_mode = rule_mode if rule_mode else mode
+    if eff_mode == "block":
         return "FAIL"
     return "WARN"
 
 
 def render_human(project: Project, summary: dict, findings: list[Finding],
                  mode: str, blocking: list[Finding], exit_code: int) -> None:
+    rules_config = project.config.get("rules") or {}
     print(f"=== ra-checks ({project.root}) mode={mode} ===")
     stack_bits = [k for k, v in summary["stack"].items() if v]
     print(f"stack detectado: {', '.join(stack_bits) if stack_bits else 'ninguno'}")
@@ -139,11 +142,11 @@ def render_human(project: Project, summary: dict, findings: list[Finding],
         print(f"  {check}: {count}")
     print("primeras violaciones:")
     for finding in findings[:15]:
-        severity = effective_severity(finding, mode)
+        severity = effective_severity(finding, mode, rules_config)
         print(f"  [{severity}] {finding.check} {finding.path}:{finding.line} — {finding.message}")
     if len(findings) > 15:
         print(f"  … +{len(findings) - 15} más (--json para el detalle)")
-    if mode == "warn":
+    if mode == "warn" and not blocking:
         print(f"AVISO: {len(findings)} violaciones en modo advertencia (no bloquean). "
               "Pasar a bloqueo con --mode block cuando el proyecto esté limpio.")
     else:
@@ -155,10 +158,11 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     project = open_project(args.target)
     mode = args.mode or project.config.get("mode", "warn")
+    rules_config = project.config.get("rules") or {}
     findings, summary = run(project, args.check)
 
-    blocking = [f for f in findings if effective_severity(f, mode) == "FAIL"]
-    exit_code = 1 if (mode == "block" and blocking) else 0
+    blocking = [f for f in findings if effective_severity(f, mode, rules_config) == "FAIL"]
+    exit_code = 1 if blocking else 0
 
     if args.json:
         print(json.dumps(
@@ -168,7 +172,7 @@ def main(argv: list[str]) -> int:
                 "exit": exit_code,
                 "summary": summary,
                 "findings": [
-                    {**f.as_dict(), "severity": effective_severity(f, mode)}
+                    {**f.as_dict(), "severity": effective_severity(f, mode, rules_config)}
                     for f in findings
                 ],
             },

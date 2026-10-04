@@ -1,5 +1,11 @@
 {
-  "mode": "warn",
+  "mode": "block",
+  "rules": {
+    "hardcoded-secrets": "block",
+    "http-timeout": "block",
+    "no-orchestrator": "block",
+    "lint-ratchet": "block"
+  },
   "allow": {
     "disk_paths": ["data/", "tmp/", "storage/", "uploads/", "cache/"],
     "endpoints": ["/api/health", "/healthz", "/health", "/api/healthz", "/readyz"],
