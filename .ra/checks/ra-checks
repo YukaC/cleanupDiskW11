@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# ra-checks — battery of stack-agnostic invariant checks for the reference architecture.
+# Usage: ra-checks [--mode warn|block] [--json] [PROJECT_PATH]
+# Default: dry read-only scan of PROJECT_PATH (default: current directory).
+# Exit 0 unless mode=block and at least one finding is FAIL severity.
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+exec python3 "$HERE/ra_checks/main.py" "$@"
